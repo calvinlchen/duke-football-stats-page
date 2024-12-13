@@ -4,6 +4,7 @@ import numpy as np
 import math
 from pathlib import Path
 from attendance import Attendance
+from preprocessing import Preprocessing
 
 # Title and favicon that appear in the Browser's tab bar.
 st.set_page_config(
@@ -66,9 +67,9 @@ gdp_df = get_gdp_data()
 
 # Set the title that appears at the top of the page.
 '''
-# :earth_americas: GDP dashboard
+# :football: Duke Football: Stats and Predictions
 
-Data curated and presented by Calvin Chen ([@dukeblueview](x.com/dukeblueview)). #fillthewade!
+Data presented by Calvin Chen ([@dukeblueview](x.com/dukeblueview)). #fillthewade!
 
 Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
 notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
@@ -81,22 +82,82 @@ But it's otherwise a great (and did I mention _free_?) source of data.
 
 # Bar graph showing the average attendance during seasons which FOLLOWED a bowl season
 df = pd.read_csv(Path(__file__).parent/'data/DukeAttendanceV10.csv')
-# After loading and filtering your DataFrame (let's say it's called df),
-# group by 'OppName' and compute the mean attendance.
 df = df[df['Site'] == 'Home']
 df = df[df['Bowl_PrevYear'] == 1]
+# group by 'OppName' and compute the mean attendance.
 df = df[df['OppName'].isin(Attendance.get_2025_home_opponents(include_noncon=False))]
 avg_attendance = df.groupby('OppName')['AttNum'].mean().sort_values(ascending=False)
 
 # Convert this Series to a DataFrame for plotting convenience
 avg_attendance_df = avg_attendance.reset_index().rename(columns={'AttNum': 'Average Attendance %'})
 
-st.header("Average Wallace Wade Attendance")
-st.write("for each opponent, among every post-bowl season since 2000")
+st.header("Average Wallace Wade Attendance For Upcoming Opponents")
+st.write("Among post-bowl seasons since 2000")
 st.bar_chart(data=avg_attendance_df.set_index('OppName'), color='#00539b')
 
 ''
 ''
+
+df = pd.read_csv(Path(__file__).parent/'data/DukeAttendanceV10.csv')
+df = df[df['Site'] == 'Home']
+df = df[df['Year'] < 2025]
+df = Preprocessing.add_day_of_year(df)
+
+min_value = df['Year'].min()
+max_value = df['Year'].max()
+
+from_year, to_year = st.slider(
+    'Which years are you interested in?',
+    min_value=min_value,
+    max_value=max_value,
+    value=[min_value, max_value])
+
+# Show conference opponents first, then show other home opponents
+conference_opponents = Attendance.get_conference_opponents()
+conference_list = sorted(df.loc[df['OppName'].isin(conference_opponents), 'OppName'].unique())
+non_conference_list = sorted(df.loc[~df['OppName'].isin(conference_opponents), 'OppName'].unique())
+opponents = conference_list + non_conference_list
+
+if not len(opponents):
+    st.warning("Select at least one opponent")
+
+selected_opponents = st.multiselect(
+    'Which opponents would you like to view?',
+    opponents,
+    ['North Carolina', 'North Carolina St.', 'Wake Forest', 'Georgia Tech', 'Virginia'])
+
+# Filter the data
+filtered_df = df[
+    (df['OppName'].isin(selected_opponents))
+    & (df['Year'] <= to_year)
+    & (from_year <= df['Year'])
+]
+
+filtered_df = filtered_df.rename(columns={"OppName": "Opponent"})
+# filtered_df['ScaledSize'] = 0.25 + filtered_df['OppRankedGametime'] / 2
+""
+""
+st.header('Home attendance over time', divider='gray')
+
+st.line_chart(
+    filtered_df,
+    x='Datetime',
+    y='AttNum',
+    color='Opponent',
+    x_label='Date',
+    y_label='Reported attendance'
+)
+st.scatter_chart(
+    data=filtered_df,
+    x='Datetime',
+    y='AttNum',
+    color='Undefeated_All'
+) 
+
+''
+''
+''
+
 
 min_value = gdp_df['Year'].min()
 max_value = gdp_df['Year'].max()
@@ -112,35 +173,14 @@ countries = gdp_df['Country Code'].unique()
 if not len(countries):
     st.warning("Select at least one country")
 
+
+''
+''
+
 selected_countries = st.multiselect(
     'Which countries would you like to view?',
     countries,
     ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
 
 
 first_year = gdp_df[gdp_df['Year'] == from_year]

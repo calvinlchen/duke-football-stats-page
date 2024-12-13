@@ -68,6 +68,8 @@ gdp_df = get_gdp_data()
 '''
 # :earth_americas: GDP dashboard
 
+Data curated and presented by Calvin Chen ([@dukeblueview](x.com/dukeblueview)). #fillthewade!
+
 Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
 notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
 But it's otherwise a great (and did I mention _free_?) source of data.
@@ -77,22 +79,7 @@ But it's otherwise a great (and did I mention _free_?) source of data.
 ''
 ''
 
-df = pd.read_csv(Path(__file__).parent/'data/DukeAttendanceV10.csv')
-# After loading and filtering your DataFrame (let's say it's called df),
-# group by 'OppName' and compute the mean attendance.
-df = df[df['Site'] == 'Home']
-df = df[df['OppName'].isin(Attendance.get_2025_home_opponents(include_noncon=False))]
-avg_attendance = df.groupby('OppName')['AttNum'].mean().sort_values(ascending=False)
-
-# Convert this Series to a DataFrame for plotting convenience
-avg_attendance_df = avg_attendance.reset_index().rename(columns={'AttNum': 'Average Attendance %'})
-
-st.header("Average Wallace Wade Attendance")
-st.write("for each opponent, since 2001 (excluding 2020)")
-st.bar_chart(avg_attendance_df.set_index('OppName'))
-
-''
-''
+# Bar graph showing the average attendance during seasons which FOLLOWED a bowl season
 df = pd.read_csv(Path(__file__).parent/'data/DukeAttendanceV10.csv')
 # After loading and filtering your DataFrame (let's say it's called df),
 # group by 'OppName' and compute the mean attendance.
@@ -105,8 +92,8 @@ avg_attendance = df.groupby('OppName')['AttNum'].mean().sort_values(ascending=Fa
 avg_attendance_df = avg_attendance.reset_index().rename(columns={'AttNum': 'Average Attendance %'})
 
 st.header("Average Wallace Wade Attendance")
-st.write("for each opponent, since 2001 (excluding 2020)")
-st.bar_chart(avg_attendance_df.set_index('OppName'))
+st.write("for each opponent, among every post-bowl season since 2000")
+st.bar_chart(data=avg_attendance_df.set_index('OppName'), color='#00539b')
 
 ''
 ''

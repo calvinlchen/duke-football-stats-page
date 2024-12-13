@@ -1,0 +1,51 @@
+from dataclasses import dataclass
+
+@dataclass
+class Game:
+    oppName: str
+    year: int
+    opp_FPI_prev_year: float
+    FPI_diff_prev_year: float
+    site: str
+    month: int
+    date: int
+    day: str
+    onSaturday: bool
+    startTime: float
+    result: str
+    dukePts: int
+    oppPts: int
+    covidLimit: bool
+    attNum: int
+    attPct: float
+    renovated: bool
+    maxCapacity: int
+    devilsDeck: bool
+    firstGame: bool
+    firstHomeGame: bool
+    elko: bool
+    cutcliffe: bool
+    diaz: bool
+    rain: bool
+    espn_win_pred: float
+    tv_coverage: str
+    bowl: bool
+    regular_season_prev_year: bool
+    srs_prev_year: float
+    sos_prev_year: float
+    bowl_prev_year: bool
+    duke_ranked_gametime: bool
+    opp_ranked_gametime: bool
+    main_qb: bool
+    school_break: bool
+    natl_holiday: bool
+    thanksgiving_weekend: bool
+    labor_day_weekend: bool
+    undefeated_all: bool
+    undefeated_home: bool
+    game_after_loss: bool
+    home_game_after_home_loss: bool
+    win_streak: int
+    nc_opponent: bool
+    tobacco_road_game: bool
+    opp_city_dist: float

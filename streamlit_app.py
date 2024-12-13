@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import math
 from pathlib import Path
+from attendance import Attendance
 
 # Title and favicon that appear in the Browser's tab bar.
 st.set_page_config(
@@ -75,6 +77,40 @@ But it's otherwise a great (and did I mention _free_?) source of data.
 ''
 ''
 
+df = pd.read_csv(Path(__file__).parent/'data/DukeAttendanceV10.csv')
+# After loading and filtering your DataFrame (let's say it's called df),
+# group by 'OppName' and compute the mean attendance.
+df = df[df['Site'] == 'Home']
+df = df[df['OppName'].isin(Attendance.get_2025_home_opponents(include_noncon=False))]
+avg_attendance = df.groupby('OppName')['AttNum'].mean().sort_values(ascending=False)
+
+# Convert this Series to a DataFrame for plotting convenience
+avg_attendance_df = avg_attendance.reset_index().rename(columns={'AttNum': 'Average Attendance %'})
+
+st.header("Average Wallace Wade Attendance")
+st.write("for each opponent, since 2001 (excluding 2020)")
+st.bar_chart(avg_attendance_df.set_index('OppName'))
+
+''
+''
+df = pd.read_csv(Path(__file__).parent/'data/DukeAttendanceV10.csv')
+# After loading and filtering your DataFrame (let's say it's called df),
+# group by 'OppName' and compute the mean attendance.
+df = df[df['Site'] == 'Home']
+df = df[df['Bowl_PrevYear'] == 1]
+df = df[df['OppName'].isin(Attendance.get_2025_home_opponents(include_noncon=False))]
+avg_attendance = df.groupby('OppName')['AttNum'].mean().sort_values(ascending=False)
+
+# Convert this Series to a DataFrame for plotting convenience
+avg_attendance_df = avg_attendance.reset_index().rename(columns={'AttNum': 'Average Attendance %'})
+
+st.header("Average Wallace Wade Attendance")
+st.write("for each opponent, since 2001 (excluding 2020)")
+st.bar_chart(avg_attendance_df.set_index('OppName'))
+
+''
+''
+
 min_value = gdp_df['Year'].min()
 max_value = gdp_df['Year'].max()
 
@@ -127,7 +163,7 @@ st.header(f'GDP in {to_year}', divider='gray')
 
 ''
 
-cols = st.columns(4)
+cols = st.columns(5)
 
 for i, country in enumerate(selected_countries):
     col = cols[i % len(cols)]
@@ -149,3 +185,75 @@ for i, country in enumerate(selected_countries):
             delta=growth,
             delta_color=delta_color
         )
+
+# Run the prediction function (which returns a DataFrame)
+Attendance.prepare_model()
+
+# df_2025 = Attendance.test_prediction()
+
+# st.title("Predicted Attendance for 2025 Games")
+
+# # Iterate through the rows of the resulting DataFrame
+# for i, row in df_2025.iterrows():
+#     # row is a pandas Series; access columns like a dictionary
+#     st.metric(
+#         label=row['OppName'],
+#         value=int(row['PredictedAttendance'])
+#     )
+
+# Add the new columns to df_2025 if they don't exist
+# Initially, set them to False or some default values
+if 'OppRankedGametime' not in df_2025.columns:
+    df_2025['OppRankedGametime'] = False
+
+if 'Rain' not in df_2025.columns:
+    df_2025['Rain'] = False
+
+if 'DukeWins' not in df_2025.columns:
+    df_2025['DukeWins'] = False
+
+st.write("Adjust the conditions for each game and then click 'Update Predictions'.")
+
+# Create a form to handle user input
+with st.form("update_predictions_form"):
+    for i, row in df_2025.iterrows():
+        st.write(f"### {row['OppName']}")
+        # We'll create three checkboxes per game. We use a unique key for each row.
+        opp_ranked = st.checkbox("Opponent Ranked?", value=row['OppRankedGametime'], key=f"OppRanked_{i}")
+        rain = st.checkbox("Rain?", value=row['Rain'], key=f"Rain_{i}")
+        duke_wins = st.checkbox("Duke Wins?", value=row['DukeWins'], key=f"DukeWins_{i}")
+
+    # A submit button to update predictions
+    submitted = st.form_submit_button("Update Predictions")
+
+    if submitted:
+        # Update df_2025 with the user inputs
+        for i, row in df_2025.iterrows():
+            df_2025.at[i, 'OppRankedGametime'] = st.session_state[f"OppRankedGametime_{i}"]
+            df_2025.at[i, 'Rain'] = st.session_state[f"Rain_{i}"]
+            df_2025.at[i, 'DukeWins'] = st.session_state[f"DukeWins_{i}"]
+
+        # Now we need to re-run the prediction with updated features
+        # Make sure your attendance.py model also uses these features in 'features' list.
+        # For example, in attendance.py:
+        # features = ['OppFPI_PrevYear', 'OppCityDist', 'MaxCapacity',
+        #             'ThanksgivingWeekend', 'LaborDayWeekend', 'UNC_Game', 'OppName', 
+        #             'OppRanked', 'Rain', 'DukeWins']
+
+        # Run the model's prediction again with updated conditions
+        # We need a method that can just take df_2025 and predict again.
+        # Let's assume we have a separate method in Attendance class like "Attendance.predict(df)" 
+        # or just replicate the code here.
+        
+        # If we have a method in Attendance that can predict given a DF:
+        updated_predictions = Attendance.predict(df_2025)  # You need to implement this in attendance.py
+
+        df_2025['PredictedAttendance'] = updated_predictions
+
+        st.success("Predictions updated!")
+        # Display results
+        for i, row in df_2025.iterrows():
+            st.metric(
+                label=row['OppName'],
+                value=int(row['PredictedAttendance'])
+            )
